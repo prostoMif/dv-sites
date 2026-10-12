@@ -101,6 +101,9 @@
     });
   });
 
+  // ?clean — чистый вид для превью в сообщении: без демо-плашки
+  if (/[?&]clean/.test(location.search)) $$(".demo").forEach(function (d) { d.remove(); });
+
   // закрыть плашку (если осталась)
   $$(".demo button").forEach(function (b) { b.addEventListener("click", function () { b.parentNode.remove(); }); });
 })();
