@@ -89,6 +89,11 @@
   // запись: если в config.js задан бот владельца, заявка уходит ему в Telegram напрямую;
   // иначе (или при ошибке) открываем мессенджер студии с готовым текстом
   var CFG = window.SITE_CONFIG || {};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[data-svc]");
+    var sel = document.querySelector("form[data-book] select[name=svc]");
+    if (a && sel) sel.value = a.getAttribute("data-svc");
+  });
   $$("[data-book]").forEach(function (f) {
     f.addEventListener("submit", function (e) {
       e.preventDefault();
