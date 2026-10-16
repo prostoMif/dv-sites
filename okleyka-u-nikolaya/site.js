@@ -69,7 +69,7 @@
           return '<label><input type="checkbox" data-i="' + i + '"' + (sel.indexOf(i) >= 0 ? " checked" : "") +
             '><span></span><b>' + (v ? rub(v) : "—") + "</b></label>";
         }).join("") + '</div></div><div class="calc-total"><div><span class="muted">Итого от</span><br><b>' + rub(total) +
-        '</b></div><p class="muted" style="font-size:14px">Точную цену назовём после осмотра или по фото — зависит от состояния машины.</p>' +
+        '</b></div><p class="muted" style="font-size:14px">Цена «от». Итоговую сумму называет студия.</p>' +
         '<a class="btn btn-accent" href="#book">Записаться</a></div></div>';
       $$(".calc-list span", calc).forEach(function (s, i) { s.textContent = items[i].title; }); // текст — без HTML
       $$("[data-cls]", calc).forEach(function (b) { b.onclick = function () { cls = b.getAttribute("data-cls"); render(); }; });
@@ -89,12 +89,17 @@
   // запись: если в config.js задан бот владельца, заявка уходит ему в Telegram напрямую;
   // иначе (или при ошибке) открываем мессенджер студии с готовым текстом
   var CFG = window.SITE_CONFIG || {};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[data-svc]");
+    var sel = document.querySelector("form[data-book] select[name=svc]");
+    if (a && sel) sel.value = a.getAttribute("data-svc");
+  });
   $$("[data-book]").forEach(function (f) {
     f.addEventListener("submit", function (e) {
       e.preventDefault();
       var v = function (n) { var el = f.elements.namedItem(n); return el ? el.value.trim() : ""; };
       var t = "Здравствуйте! Хочу записаться в «" + (f.getAttribute("data-name") || "") + "».\nИмя: " + v("name") +
-        "\nТелефон: " + v("phone") + (v("car") ? "\nАвто: " + v("car") : "") + (v("cls") ? "\nКузов: " + v("cls") : "") +
+        "\nТелефон: " + v("phone") + (v("car") ? "\nАвто: " + v("car") : "") +
         "\nУслуга: " + v("svc") + (v("when") ? "\nКогда: " + v("when") : "") + (v("msg") ? "\n" + v("msg") : "");
       var wa = f.getAttribute("data-wa"), tg = f.getAttribute("data-tg"), ph = f.getAttribute("data-phone");
       function fallback() {
