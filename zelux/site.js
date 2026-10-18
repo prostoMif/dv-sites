@@ -69,7 +69,7 @@
           return '<label><input type="checkbox" data-i="' + i + '"' + (sel.indexOf(i) >= 0 ? " checked" : "") +
             '><span></span><b>' + (v ? rub(v) : "—") + "</b></label>";
         }).join("") + '</div></div><div class="calc-total"><div><span class="muted">Итого от</span><br><b>' + rub(total) +
-        '</b></div><p class="muted" style="font-size:14px">Точную цену назовём после осмотра или по фото — зависит от состояния машины.</p>' +
+        '</b></div><p class="muted" style="font-size:14px">Цена «от». Итоговую сумму называет студия.</p>' +
         '<a class="btn btn-accent" href="#book">Записаться</a></div></div>';
       $$(".calc-list span", calc).forEach(function (s, i) { s.textContent = items[i].title; }); // текст — без HTML
       $$("[data-cls]", calc).forEach(function (b) { b.onclick = function () { cls = b.getAttribute("data-cls"); render(); }; });
@@ -86,18 +86,37 @@
   buildCalc();
   window.siteCalc = buildCalc; // редактор пересобирает калькулятор после правки цен
 
-  // запись: открываем мессенджер студии с готовым текстом, данные никуда не отправляются
+  // запись: если в config.js задан бот владельца, заявка уходит ему в Telegram напрямую;
+  // иначе (или при ошибке) открываем мессенджер студии с готовым текстом
+  var CFG = window.SITE_CONFIG || {};
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[data-svc]");
+    var sel = document.querySelector("form[data-book] select[name=svc]");
+    if (a && sel) sel.value = a.getAttribute("data-svc");
+  });
   $$("[data-book]").forEach(function (f) {
     f.addEventListener("submit", function (e) {
       e.preventDefault();
       var v = function (n) { var el = f.elements.namedItem(n); return el ? el.value.trim() : ""; };
       var t = "Здравствуйте! Хочу записаться в «" + (f.getAttribute("data-name") || "") + "».\nИмя: " + v("name") +
-        "\nТелефон: " + v("phone") + (v("car") ? "\nАвто: " + v("car") : "") + "\nУслуга: " + v("svc") + (v("msg") ? "\n" + v("msg") : "");
+        "\nТелефон: " + v("phone") + (v("car") ? "\nАвто: " + v("car") : "") +
+        "\nУслуга: " + v("svc") + (v("when") ? "\nКогда: " + v("when") : "") + (v("msg") ? "\n" + v("msg") : "");
       var wa = f.getAttribute("data-wa"), tg = f.getAttribute("data-tg"), ph = f.getAttribute("data-phone");
-      if (wa) window.open("https://wa.me/" + wa + "?text=" + encodeURIComponent(t), "_blank");
-      else if (tg) { if (navigator.clipboard) navigator.clipboard.writeText(t).catch(function () {}); window.open(tg, "_blank"); }
-      else if (ph) location.href = "tel:" + ph;
-      f.innerHTML = '<div class="ok">Отправьте сообщение в открывшемся чате — и мы свяжемся с вами.</div>';
+      function fallback() {
+        if (wa) window.open("https://wa.me/" + wa + "?text=" + encodeURIComponent(t), "_blank");
+        else if (tg) { if (navigator.clipboard) navigator.clipboard.writeText(t).catch(function () {}); window.open(tg, "_blank"); }
+        else if (ph) location.href = "tel:" + ph;
+        f.innerHTML = '<div class="ok">Отправьте сообщение в открывшемся чате — и мы свяжемся с вами.</div>';
+      }
+      if (CFG.tgBotToken && CFG.tgChatId) {
+        fetch("https://api.telegram.org/bot" + CFG.tgBotToken + "/sendMessage", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: CFG.tgChatId, text: "Новая заявка с сайта\n\n" + t })
+        }).then(function (r) {
+          if (!r.ok) throw 0;
+          f.innerHTML = '<div class="ok">Заявка отправлена. Мы свяжемся с вами в ближайшее время.</div>';
+        }).catch(fallback);
+      } else fallback();
     });
   });
 
